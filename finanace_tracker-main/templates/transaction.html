@@ -1,0 +1,260 @@
+
+<html>
+<head>
+  <title>Transaction Form</title>
+
+  <style>
+.transaction-form-container {
+  max-width: 450px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.form-title {
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+}
+.form-title span {
+  color: #1492d6;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #444;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: 0.3s;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #1492d6;
+  box-shadow: 0 0 5px #1492d6;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.radio-group label {
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.income {
+  color: green;
+}
+.expense {
+  color: orange;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.submit-btn {
+  flex: 1;
+  background: linear-gradient(to right, #1492d6, #d2654b);
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.4s;
+}
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+.cancel-btn {
+  flex: 1;
+  border: 2px solid #ccc;
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #333;
+}
+.cancel-btn:hover {
+  border-color: #1492d6;
+  color: #1492d6;
+}
+
+.ai-helper {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff, #fef3c7);
+  border: 1px solid #bfdbfe;
+}
+
+.ai-helper h3 {
+  margin: 0 0 8px;
+  color: #1e3a8a;
+  font-size: 16px;
+}
+
+.ai-helper p {
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.ai-helper + .ai-helper {
+  margin-top: 16px;
+}
+
+.ai-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ai-btn {
+  background: #1d4ed8;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ai-feedback {
+  flex: 1;
+  min-width: 220px;
+  font-size: 14px;
+  color: #334155;
+}
+
+  </style>
+  
+</head>
+<body>
+  <div>
+<div class="transaction-form-container">
+  <h2 class="form-title">💸 Add <span>New</span> Transaction</h2>
+
+  <!-- Message display area -->
+  <div id="transaction-message" style="margin-bottom: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
+
+  <form id="transactionForm">
+    <div class="ai-helper">
+      <h3>AI Quick Entry</h3>
+      <p>Type one sentence like “Spent {{ currency }}450 on Uber today” and I will fill the form for you.</p>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label for="ai-transaction-input">Describe Your Transaction</label>
+        <textarea id="ai-transaction-input" placeholder="Example: Received salary 55000 today"></textarea>
+      </div>
+      <div class="ai-row">
+        <button type="button" id="parseTransactionBtn" class="ai-btn">Autofill From Text</button>
+        <div id="ai-parse-message" class="ai-feedback">Nothing parsed yet.</div>
+      </div>
+    </div>
+
+    <div class="ai-helper">
+      <h3>Smart Category Suggestion</h3>
+      <p>Describe the transaction and I will suggest the best category before you save it.</p>
+      <div class="ai-row">
+        <button type="button" id="suggestCategoryBtn" class="ai-btn">Suggest Category</button>
+        <div id="ai-suggestion-message" class="ai-feedback">No suggestion yet.</div>
+      </div>
+    </div>
+
+    <!-- Transaction Type -->
+    <div class="form-group type-group">
+      <label>Transaction Type</label>
+      <div class="radio-group">
+        <label><input type="radio" name="type" value="income" required> <span class="income">Income</span></label>
+        <label><input type="radio" name="type" value="expense"> <span class="expense">Expense</span></label>
+      </div>
+    </div>
+
+    <!-- Amount -->
+    <div class="form-group">
+      <label for="amount">Amount</label>
+      <input type="number" id="amount" name="amount" placeholder="{{ currency }} 0.00" required>
+    </div>
+
+    <!-- Category -->
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select id="category" name="category" required>
+        <option value="" disabled selected>Select a category</option>
+        <!-- Income Categories -->
+        <optgroup label="Income">
+          <option value="salary">Salary</option>
+          <option value="freelance">Freelance</option>
+          <option value="investment">Investment</option>
+          <option value="bonus">Bonus</option>
+          <option value="other_income">Other Income</option>
+        </optgroup>
+        <!-- Expense Categories -->
+        <optgroup label="Expenses">
+          <option value="food">Food & Dining</option>
+          <option value="transport">Transportation</option>
+          <option value="shopping">Shopping</option>
+          <option value="bills">Bills & Utilities</option>
+          <option value="entertainment">Entertainment</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="education">Education</option>
+          <option value="other_expense">Other Expense</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <!-- Date -->
+    <div class="form-group">
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" required>
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" placeholder="Enter transaction description..."></textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="form-buttons">
+      <button type="submit" class="submit-btn">Add Transaction</button>
+      <button type="button" class="cancel-btn" onclick="window.location.href='/dashboard'">Back to Dashboard</button>
+    </div>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='transaction.js') }}"></script>
+</body>
+</html> 

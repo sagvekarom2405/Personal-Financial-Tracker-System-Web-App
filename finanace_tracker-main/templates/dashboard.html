@@ -1,0 +1,517 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Finance Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+
+  <style>
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+    /* Dynamic Theme Color Application */
+    :root {
+        --theme-color: {{ appearance.theme_color }};
+    }
+    .nav li.active { color: var(--theme-color) !important; background: rgba(79, 70, 229, 0.1); }
+    .export { color: var(--theme-color) !important; background: rgba(79, 70, 229, 0.1); }
+    .switch input:checked + .slider { background-color: var(--theme-color) !important; }
+  </style>
+</head>
+<body class="{{ 'dark-mode' if appearance.theme_mode == 'dark' else '' }}">
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2 class="logo">&#128184; Personal <span>Finance</span> Tracker</h2>
+      <nav class="nav">
+        
+        <ul>
+          <li class="active" data-section="dashboard">&#128202; Dashboard</li>
+          <li data-section="transactions">&#129534; Transactions</li>
+          <li data-section="financial-goals">&#127919; Goals</li>
+          <li data-section="profile">&#128100; Profile</li>
+           <li data-section="help"> &#10067; Help</li>
+          {% if is_admin %}
+           <li onclick="window.location.href='{{ url_for('admin_dashboard') }}'" style="color: #ef4444; font-weight: bold;">&#128737;&#65039; Admin Panel</li>
+          {% endif %}
+        </ul>
+      </nav>
+      <div class="bottom-nav">
+        <ul>
+          <li data-section="settings">&#9881;&#65039; Settings</li>
+          <li onclick="window.location.href='{{ url_for('logout') }}'" style="cursor: pointer;">&#128682; Logout</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="main-header">
+        <h1>Personal Finance Tracker</h1>
+        <p>Your one-stop solution for managing your finances  effectively</p>
+      </header>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div style="margin: 20px 0;">
+            {% for category, message in messages %}
+              <div style="padding: 15px; border-radius: 8px; margin-bottom: 10px; background-color: {{ '#d1fae5' if category == 'success' else '#fee2e2' }}; color: {{ '#065f46' if category == 'success' else '#b91c1c' }};">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- Dashboard section -->
+      <section id="dashboard" class="section active-section">
+        <h2>Dashboard</h2>
+        <p>Welcome back, {{ user_name }}! Here's a quick overview of your financial health.</p>
+         <div class="actions">
+         <a href="{{ url_for('handle_transaction') }}" class="btn add">+ Add Transaction</a>
+        </div>
+        <div class="cards">
+          <div class="card green">
+            <h3>Total Balance</h3>
+            <p class="value">{{ appearance.currency }}{{ "{:,.2f}".format(balance) }}</p>
+            <span class="change up">+0.0% from last month</span>
+          </div>
+          <div class="card purple">
+            <h3>Monthly Income</h3>
+            <p class="value">{{ appearance.currency }}{{ "{:,.2f}".format(income) }}</p>
+            <span class="change up">+0.0% from last month</span>
+          </div>
+          <div class="card orange">
+            <h3>Monthly Expenses</h3>
+            <p class="value">{{ appearance.currency }}{{ "{:,.2f}".format(expense) }}</p>
+            <span class="change down">-0.0% from last month</span>
+          </div>
+          <div class="card pink">
+            <h3>Savings Rate</h3>
+            <p class="value">{{ savings_rate | round(2) }}%</p>
+            <span class="change up">+0.0% from last month</span>
+          </div>
+        </div>
+
+        <div class="ai-insights-panel">
+          <div class="ai-insights-header">
+            <div>
+              <h3>AI Money Insights</h3>
+              <p>{{ ai_insights.overview }}</p>
+            </div>
+            <button type="button" id="refreshInsightsBtn" class="btn export">Refresh Insights</button>
+          </div>
+
+          <div class="ai-health-score">
+            <span>Financial Health Score</span>
+            <strong id="aiHealthScore">{{ ai_insights.health_score }}/100</strong>
+          </div>
+
+          <div class="ai-insights-grid">
+            <div class="ai-insight-card">
+              <h4>Highlights</h4>
+              <ul id="aiHighlightsList">
+                {% for item in ai_insights.highlights %}
+                <li>{{ item }}</li>
+                {% else %}
+                <li>No highlights yet. Add more transactions to improve analysis.</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="ai-insight-card">
+              <h4>Suggested Actions</h4>
+              <ul id="aiActionsList">
+                {% for item in ai_insights.actions %}
+                <li>{{ item }}</li>
+                {% else %}
+                <li>No actions yet.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section (Moved from Goals loop to prevent duplicate IDs) -->
+        {% if is_paid or is_admin %}
+        <div class="charts-container" style="display: flex; gap: 20px; margin-top: 30px; flex-wrap: wrap;">
+            <div class="chart-wrapper" style="flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <h3 style="margin-bottom: 15px; color: #374151; font-size: 16px;">Income Breakdown</h3>
+                <canvas id="incomePieChart"></canvas>
+            </div>
+            <div class="chart-wrapper" style="flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <h3 style="margin-bottom: 15px; color: #374151; font-size: 16px;">Expense Breakdown</h3>
+                <canvas id="expensePieChart"></canvas>
+            </div>
+        </div>
+        {% else %}
+        <div class="premium-lock">
+            <h3>&#128202; Advanced Analytics</h3>
+            <p>Upgrade to Premium to visualize your income, expenses, and spending habits.</p>
+            <a href="{{ url_for('payment_page') }}" class="btn add">Upgrade to Premium</a>
+        </div>
+        {% endif %}
+      </section>
+
+
+       <section id="transactions" class="section">
+        <!-- Recent Transactions List -->
+        <div class="recent-transactions">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin-bottom: 0;">Recent Transactions</h2>
+            <a href="{{ url_for('export_report') }}" class="btn" style="background: #4f46e5; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-size: 14px;">&#128229; Download Report</a>
+          </div>
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for transaction in transactions %}
+              <tr>
+                <td>{{ transaction.date.strftime(appearance.date_format) }}</td>
+                <td class="transaction-type {{ transaction.type }}">{{ transaction.type|capitalize }}</td>
+                <td>{{ transaction.category }}</td>
+                <td>{{ appearance.currency }}{{ "{:,.2f}".format(transaction.amount) }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="no-transactions">No transactions found. Add one to get started!</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <section id="financial-goals" class="section">
+        <h2>Financial Goals</h2>
+        {% if is_paid or is_admin %}
+        <div style="margin: 20px 0;">
+          <a href="{{ url_for('add_goal_form') }}" class="add-goal-btn">+ Add Goal</a>
+        </div>
+        <div class="goals-grid">
+          {% for goal in goals %}
+          {% set percent = (goal.current_amount / goal.target_amount) * 100 if goal.target_amount > 0 else 0 %}
+          {% set is_completed = percent >= 100 %}
+          {% set days_left = (goal.target_date - today_date).days %}
+          {% set is_overdue = days_left < 0 and not is_completed %}
+          {% set is_near_deadline = days_left >= 0 and days_left <= 7 and not is_completed %}
+          
+          <div class="goal-card" style="{{ 'border: 2px solid #10b981; background-color: #f0fdf4;' if is_completed else ('border: 2px solid #ef4444; background-color: #fef2f2;' if is_overdue else ('border: 2px solid #ef4444; background-color: #fff5f5;' if is_near_deadline else '')) }}">
+            <div class="goal-header">
+              <h3>{{ goal.title }}</h3>
+              <span class="category-badge {{ goal.category }}">{{ goal.category }}</span>
+            </div>
+
+            {% if is_completed %}
+              <div style="color: #15803d; font-weight: bold; margin-bottom: 10px; font-size: 1.1em;">&#127942; Goal Achieved! &#127881;</div>
+            {% elif is_overdue %}
+              <div style="color: #b91c1c; font-weight: bold; margin-bottom: 10px; animation: blink 1.5s infinite;">&#9888;&#65039; Alert: Goal Overdue!</div>
+            {% elif is_near_deadline %}
+              <div style="color: #b91c1c; font-weight: bold; margin-bottom: 10px; animation: blink 1.5s infinite;">&#9888;&#65039; Alert: Due Soon ({{ days_left }} days left)!</div>
+            {% endif %}
+
+            <p><strong style="color:green;">{{ appearance.currency }} {{ "{:,.0f}".format(goal.current_amount) }}</strong> of {{ appearance.currency }}{{ "{:,.0f}".format(goal.target_amount) }}</p>
+
+            <div class="progress-bar" style="overflow: hidden;">
+              <div class="progress-fill" style="width: {{ 100 if percent > 100 else percent }}%;"></div>
+            </div>
+
+            <div class="goal-meta">
+              <div class="percent">{{ "{:.1f}".format(percent) }}%<br><small>Achieved</small></div>
+              <div class="status" style="color: {{ '#15803d' if is_completed else ('#b91c1c' if is_overdue or is_near_deadline else '#d97706') }}; font-weight: bold;">
+                {% if is_completed %}
+                  Reached
+                {% elif is_overdue %}
+                  Overdue
+                {% elif is_near_deadline %}
+                  Due Soon
+                {% else %}
+                  Pending
+                {% endif %}<br><small style="color: #6b7280; font-weight: normal;">Status</small>
+              </div>
+            </div>
+
+            <div class="goal-footer">
+              <span>&#128184; {{ appearance.currency }}{{ "{:,.0f}".format(goal.target_amount - goal.current_amount) }} left</span>
+              <span>&#128197; {{ goal.target_date.strftime(appearance.date_format) }}</span>
+            </div>
+            <div style="margin-top: 15px; border-top: 1px solid #f3f4f6; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <a href="{{ url_for('edit_goal', goal_id=goal.id) }}" style="color: #4f46e5; text-decoration: none; font-size: 14px; font-weight: 600;">Edit</a>
+                <form action="{{ url_for('delete_goal', goal_id=goal.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this goal?');" style="margin: 0;">
+                    <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: 600; padding: 0;">Delete</button>
+                </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="premium-lock">
+            <h3>&#127919; Financial Goals</h3>
+            <p>Set targets, track progress, and achieve your financial dreams with Premium.</p>
+            <a href="{{ url_for('payment_page') }}" class="btn add">Upgrade to Premium</a>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- Profile Section -->
+      <section id="profile" class="section">
+        <h2>My Profile</h2>
+        <div class="profile-container">
+          <div class="profile-avatar">
+            {{ user_name[0]|upper if user_name else 'U' }}
+          </div>
+          <div class="profile-info">
+            <h3>{{ user_name }}</h3>
+            <p>Welcome to your personal finance hub.</p>
+            <a href="{{ url_for('edit_profile') }}" class="btn" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; text-decoration: none; display: inline-block;">Edit Profile</a>
+          </div>
+        </div>
+        
+        <div class="settings-container" style="margin: 30px auto;">
+            <div class="settings-block" style="border-left-color: #4f46e5;">
+                <h3>Account Statistics</h3>
+                <div class="profile-stats">
+                    <div>
+                        <p class="value">{{ transaction_count }}</p>
+                        <p class="label">Total Transactions</p>
+                    </div>
+                    <div>
+                        <p class="value">{{ goals|length }}</p>
+                        <p class="label">Active Goals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- Help Section -->
+      <section id="help" class="section">
+        <h2>Help & Support</h2>
+        <p>Find answers to common questions and learn how to use the Personal Finance Tracker effectively.</p>
+        
+        <div class="faq-container">
+          <div class="faq-item">
+            <h3>How do I add a new transaction?</h3>
+            <p>To add a new transaction, navigate to the 'Dashboard' section and click on the '+ Add Transaction' button. This will take you to a form where you can enter the details of your income or expense.</p>
+          </div>
+          <div class="faq-item">
+            <h3>How can I set a new financial goal?</h3>
+            <p>Go to the 'Goals' section and click the '+ Add Goal' button. You can then specify the goal title, target amount, category, and target date.</p>
+          </div>
+          <div class="faq-item">
+            <h3>Where can I see a breakdown of my spending?</h3>
+            <p>The 'Dashboard' provides a summary of your monthly income and expenses. For a detailed list of all your transactions, visit the 'Transactions' section.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="settings" class="section">
+        <h2>Settings</h2>
+        <p>Manage your account settings and preferences.</p>
+
+        <div class="settings-container">
+          <div class="settings-block">
+            <h3>Profile Information</h3>
+            <p>Update your personal details like name, email, and password. This information is kept private and secure.</p>
+            <a href="{{ url_for('edit_profile') }}" class="btn filter" style="margin-top: 10px; text-decoration: none; display: inline-block;">Edit Profile</a>
+          </div>
+          <div class="settings-block">
+            <h3>Notification Preferences</h3>
+            <p style="margin-bottom: 20px;">Manage your email alerts and reminders.</p>
+            
+            <form action="{{ url_for('update_notifications') }}" method="POST">
+                <div class="toggle-container">
+                    <span class="toggle-label">Enable Email Notifications</span>
+                    <label class="switch">
+                        <input type="checkbox" name="notify_general" {% if notifications.general %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">Expense Limit Warning Alerts</span>
+                    <label class="switch">
+                        <input type="checkbox" name="notify_expense_limit" {% if notifications.expense_limit %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">Monthly Financial Summary</span>
+                    <label class="switch">
+                        <input type="checkbox" name="notify_monthly_summary" {% if notifications.monthly_summary %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">Daily Expense Reminder</span>
+                    <label class="switch">
+                        <input type="checkbox" name="notify_daily_reminder" {% if notifications.daily_reminder %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <button type="submit" class="btn export" style="margin-top: 10px;">Save Preferences</button>
+            </form>
+          </div>
+          <div class="settings-block">
+            <h3>Appearance</h3>
+            <p>Customize the look and feel of your dashboard.</p>
+            <form action="{{ url_for('update_appearance') }}" method="POST" style="margin-top: 15px;">
+                <div class="toggle-container">
+                    <span class="toggle-label">Theme Mode</span>
+                    <select name="theme_mode" style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db;">
+                        <option value="light" {% if appearance.theme_mode == 'light' %}selected{% endif %}>&#9728;&#65039; Light Mode</option>
+                        <option value="dark" {% if appearance.theme_mode == 'dark' %}selected{% endif %}>&#127769; Dark Mode</option>
+                    </select>
+                </div>
+                
+                <div class="toggle-container">
+                    <span class="toggle-label">Theme Color</span>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="color" name="theme_color" value="{{ appearance.theme_color }}" style="height: 35px; width: 60px; border: none; cursor: pointer;">
+                    </div>
+                </div>
+
+                <div class="toggle-container">
+                    <span class="toggle-label">Currency Symbol</span>
+                    <select name="currency" style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db;">
+                        <option value="₹" {% if appearance.currency == '₹' %}selected{% endif %}>&#8377; Rupee (INR)</option>
+                        <option value="$" {% if appearance.currency == '$' %}selected{% endif %}>$ Dollar (USD)</option>
+                        <option value="€" {% if appearance.currency == '€' %}selected{% endif %}>&#8364; Euro (EUR)</option>
+                        <option value="£" {% if appearance.currency == '£' %}selected{% endif %}>&#163; Pound (GBP)</option>
+                        <option value="¥" {% if appearance.currency == '¥' %}selected{% endif %}>&#165; Yen (JPY)</option>
+                    </select>
+                </div>
+
+                <div class="toggle-container">
+                    <span class="toggle-label">Date Format</span>
+                    <select name="date_format" style="padding: 8px; border-radius: 6px; border: 1px solid #d1d5db;">
+                        <option value="%Y-%m-%d" {% if appearance.date_format == '%Y-%m-%d' %}selected{% endif %}>YYYY-MM-DD (2023-12-31)</option>
+                        <option value="%d/%m/%Y" {% if appearance.date_format == '%d/%m/%Y' %}selected{% endif %}>DD/MM/YYYY (31/12/2023)</option>
+                        <option value="%m/%d/%Y" {% if appearance.date_format == '%m/%d/%Y' %}selected{% endif %}>MM/DD/YYYY (12/31/2023)</option>
+                        <option value="%b %d, %Y" {% if appearance.date_format == '%b %d, %Y' %}selected{% endif %}>Mon DD, YYYY (Dec 31, 2023)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn export" style="margin-top: 10px;">Save Appearance</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+  
+  
+
+    </main>
+  </div>
+  <script>
+    const DEFAULT_SECTION_ID = 'dashboard';
+
+    function showSection(sectionId) {
+      const resolvedSectionId = document.getElementById(sectionId) ? sectionId : DEFAULT_SECTION_ID;
+
+      // Hide all sections
+      document.querySelectorAll('.main .section').forEach(section => {
+        section.classList.remove('active-section');
+      });
+
+      // Show the target section
+      const targetSection = document.getElementById(resolvedSectionId);
+      if (targetSection) {
+        targetSection.classList.add('active-section');
+      }
+
+      // Update active state in sidebar
+      document.querySelectorAll('.sidebar .nav li, .sidebar .bottom-nav li').forEach(li => {
+        li.classList.remove('active');
+        if (li.dataset.section === resolvedSectionId) {
+          li.classList.add('active');
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle sidebar navigation clicks
+      document.querySelectorAll('.sidebar .nav li, .sidebar .bottom-nav li').forEach(li => {
+        li.addEventListener('click', () => {
+          // Only switch sections if the li has a data-section attribute (Admin link does not)
+          if (li.dataset.section) { 
+            showSection(li.dataset.section);
+          }
+        });
+      });
+
+      // Check for a hash in the URL to show a specific section on page load
+      if (window.location.hash) {
+        const sectionId = window.location.hash.substring(1);
+        showSection(sectionId);
+      } else {
+        showSection(DEFAULT_SECTION_ID);
+      }
+
+      const refreshInsightsBtn = document.getElementById('refreshInsightsBtn');
+      const healthScoreEl = document.getElementById('aiHealthScore');
+      const highlightsListEl = document.getElementById('aiHighlightsList');
+      const actionsListEl = document.getElementById('aiActionsList');
+      const insightsHeaderText = document.querySelector('.ai-insights-header p');
+
+      const renderInsightList = (element, items, fallbackText) => {
+        if (!element) return;
+        element.innerHTML = '';
+        const values = Array.isArray(items) && items.length ? items : [fallbackText];
+        values.forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          element.appendChild(li);
+        });
+      };
+
+      if (refreshInsightsBtn) {
+        refreshInsightsBtn.addEventListener('click', async () => {
+          refreshInsightsBtn.disabled = true;
+          refreshInsightsBtn.textContent = 'Refreshing...';
+
+          try {
+            const response = await fetch('/ai/dashboard-insights');
+            let result = null;
+            try {
+              result = await response.json();
+            } catch (jsonError) {
+              throw new Error('Server returned an invalid response.');
+            }
+
+            if (!response.ok || !result.success) {
+              throw new Error(result.message || 'Unable to refresh insights.');
+            }
+
+            const insights = result.insights || {};
+            if (insightsHeaderText) insightsHeaderText.textContent = insights.overview || 'Insights updated.';
+            if (healthScoreEl) healthScoreEl.textContent = `${insights.health_score || 0}/100`;
+            renderInsightList(highlightsListEl, insights.highlights, 'No highlights yet.');
+            renderInsightList(actionsListEl, insights.actions, 'No actions yet.');
+          } catch (error) {
+            console.error(error);
+            if (insightsHeaderText) insightsHeaderText.textContent = 'Could not refresh insights right now.';
+          } finally {
+            refreshInsightsBtn.disabled = false;
+            refreshInsightsBtn.textContent = 'Refresh Insights';
+          }
+        });
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='charts.js') }}"></script>
+
+
+</body>
+</html>

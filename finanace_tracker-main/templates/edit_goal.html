@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Goal - Personal Finance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <style>
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f7f9fc; font-family: "Segoe UI", sans-serif; }
+        .form-container { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); width: 100%; max-width: 450px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 16px; }
+        .btn-submit { width: 100%; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: transform 0.2s; }
+        .btn-submit:hover { transform: scale(1.02); }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #6b7280; text-decoration: none; font-size: 14px; }
+        .back-link:hover { color: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2 style="text-align: center; margin-bottom: 25px; color: #111827;">Edit Goal</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label>Goal Title</label>
+                <input type="text" name="title" value="{{ goal.title }}" required>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" required>
+                    <option value="savings" {% if goal.category == 'savings' %}selected{% endif %}>Savings</option>
+                    <option value="investment" {% if goal.category == 'investment' %}selected{% endif %}>Investment</option>
+                    <option value="purchase" {% if goal.category == 'purchase' %}selected{% endif %}>Purchase</option>
+                    <option value="emergency" {% if goal.category == 'emergency' %}selected{% endif %}>Emergency</option>
+                    <option value="travel" {% if goal.category == 'travel' %}selected{% endif %}>Travel</option>
+                    <option value="education" {% if goal.category == 'education' %}selected{% endif %}>Education</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Amount (&#8377;)</label>
+                <input type="number" name="target_amount" value="{{ goal.target_amount }}" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Current Amount (&#8377;)</label>
+                <input type="number" name="current_amount" value="{{ goal.current_amount }}" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label>Target Date</label>
+                <input type="date" name="target_date" value="{{ goal.target_date }}" required>
+            </div>
+            <button type="submit" class="btn-submit">Update Goal</button>
+        </form>
+        <a href="{{ url_for('dashboard') }}" class="back-link">Cancel</a>
+    </div>
+</body>
+</html>

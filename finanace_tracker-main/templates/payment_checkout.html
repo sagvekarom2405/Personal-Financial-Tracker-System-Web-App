@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - Finance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1951&q=80');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            color: #1f2937;
+        }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            border-color: #4f46e5;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .hidden { display: none; }
+        .error-msg { color: #dc2626; font-size: 13px; margin-top: 5px; display: none; }
+        .back-link { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Complete Payment</h2>
+        <div style="text-align:center; margin-bottom:20px;">
+            <p style="font-size:18px; font-weight:bold;">₹499.00</p>
+            <p style="color:#666; font-size:14px;">Premium Lifetime Access</p>
+        </div>
+        
+        <form id="checkout-form" action="/payment/process" method="POST">
+            <div class="form-group">
+                <label>Payer Name</label>
+                <input type="text" name="payer_name" id="payer_name" required placeholder="Enter full name">
+            </div>
+
+            <div class="form-group">
+                <label>Payment Method</label>
+                <select name="method" id="method" required>
+                    <option value="" selected disabled>Select Payment Method</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Credit / Debit Card</option>
+                </select>
+            </div>
+
+            <!-- UPI Section -->
+            <div id="upi-section" class="hidden">
+                <div class="form-group">
+                    <label>UPI ID</label>
+                    <input type="text" id="upi_id" placeholder="username@bank">
+                    <div id="upi-error" class="error-msg">Invalid UPI ID format.</div>
+                </div>
+            </div>
+
+            <!-- Card Section -->
+            <div id="card-section" class="hidden">
+                <div class="form-group">
+                    <label>Card Number</label>
+                    <input type="text" id="card_number" placeholder="0000 0000 0000 0000" maxlength="23">
+                    <div id="card-error" class="error-msg">Invalid card number.</div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Expiry</label>
+                        <input type="text" id="expiry" placeholder="MM/YY" maxlength="5">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>CVV</label>
+                        <input type="password" id="cvv" placeholder="123" maxlength="3">
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="details" id="details">
+
+            <button type="submit" class="btn">Pay Now</button>
+        </form>
+        <a href="/dashboard" class="back-link">Cancel</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const methodSelect = document.getElementById('method');
+            const upiSection = document.getElementById('upi-section');
+            const cardSection = document.getElementById('card-section');
+            const form = document.getElementById('checkout-form');
+            
+            methodSelect.addEventListener('change', () => {
+                const val = methodSelect.value;
+                upiSection.classList.add('hidden');
+                cardSection.classList.add('hidden');
+                if(val === 'UPI') upiSection.classList.remove('hidden');
+                else if (val === 'Card') cardSection.classList.remove('hidden');
+            });
+
+            document.getElementById('card_number').addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '');
+                document.getElementById('card-error').style.display = 'none';
+            });
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const method = methodSelect.value;
+                const detailsInput = document.getElementById('details');
+                document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
+
+                if (method === 'UPI') {
+                    const upiId = document.getElementById('upi_id').value.trim();
+                    if (!/^[\w.-]+@[\w.-]+$/.test(upiId)) {
+                        document.getElementById('upi-error').style.display = 'block';
+                        return;
+                    }
+                    detailsInput.value = `UPI ID: ${upiId}`;
+                } 
+                else if (method === 'Card') {
+                    const cardNum = document.getElementById('card_number').value;
+                    const expiry = document.getElementById('expiry').value.trim();
+                    const cvv = document.getElementById('cvv').value.trim();
+                    
+                    if (cardNum.length !== 16) {
+                        document.getElementById('card-error').innerText = "Card number must be 16 digits.";
+                        document.getElementById('card-error').style.display = 'block';
+                        return;
+                    }
+                    
+                    let sum = 0, shouldDouble = false;
+                    for (let i = cardNum.length - 1; i >= 0; i--) {
+                        let digit = parseInt(cardNum.charAt(i));
+                        if (shouldDouble) { if ((digit *= 2) > 9) digit -= 9; }
+                        sum += digit;
+                        shouldDouble = !shouldDouble;
+                    }
+                    if ((sum % 10) !== 0) {
+                         document.getElementById('card-error').innerText = "Invalid Card Number (Luhn Check Failed).";
+                         document.getElementById('card-error').style.display = 'block';
+                         return;
+                    }
+
+                    if (!expiry || !cvv) { alert("Please complete card details."); return; }
+                    detailsInput.value = `Card: XXXX-XXXX-XXXX-${cardNum.slice(-4)}`;
+                }
+                form.submit();
+            });
+        });
+    </script>
+</body>
+</html>

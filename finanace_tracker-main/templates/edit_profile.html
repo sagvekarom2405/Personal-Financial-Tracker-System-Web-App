@@ -1,0 +1,191 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Personal Finance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f7f9fc;
+            font-family: "Segoe UI", sans-serif;
+        }
+        .form-container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 450px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #374151; }
+        
+        .input-wrapper { position: relative; }
+        .input-wrapper input { 
+            width: 100%; 
+            padding: 12px 40px 12px 40px; /* Space for icons */
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-wrapper input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            outline: none;
+        }
+        .input-wrapper .field-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .toggle-password:hover { color: #4f46e5; }
+
+        .btn-submit { width: 100%; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: transform 0.2s; }
+        .btn-submit:hover { transform: scale(1.02); }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #6b7280; text-decoration: none; font-size: 14px; }
+        .back-link:hover { color: #4f46e5; }
+        .error-message { color: #ef4444; font-size: 14px; margin-top: 5px; display: none; }
+        
+        .profile-avatar-large {
+            width: 80px; height: 80px; background: #e0e7ff; color: #4f46e5;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 32px; margin: 0 auto 20px;
+        }
+        
+        /* Password Strength */
+        .strength-meter { height: 4px; background: #f3f4f6; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+        .strength-bar { height: 100%; width: 0; background: #ef4444; transition: width 0.3s ease, background-color 0.3s ease; }
+        .strength-text { font-size: 12px; text-align: right; margin-top: 4px; font-weight: 500; min-height: 18px; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="profile-avatar-large">
+            <i class="fas fa-user-edit"></i>
+        </div>
+        <h2 style="text-align: center; margin-bottom: 30px; color: #111827;">Edit Profile</h2>
+        <form action="{{ url_for('edit_profile') }}" method="POST" id="profileForm">
+            <div class="form-group">
+                <label>Email Address</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope field-icon"></i>
+                    <input type="email" value="{{ user_email }}" disabled style="background: #f9fafb; color: #6b7280; cursor: not-allowed;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user field-icon"></i>
+                    <input type="text" name="full_name" value="{{ user.full_name or '' }}" placeholder="Full Name" required minlength="2">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-phone field-icon"></i>
+                    <input type="tel" name="phone" value="{{ user.phone or '' }}" placeholder="Phone Number" pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>New Password <small style="color:#6b7280; font-weight:normal;">(Leave blank to keep current)</small></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock field-icon"></i>
+                    <input type="password" id="password" name="password" placeholder="Enter new password" minlength="8">
+                    <i class="fas fa-eye toggle-password" data-target="password"></i>
+                </div>
+                <div class="strength-meter"><div class="strength-bar" id="strength-bar"></div></div>
+                <div class="strength-text" id="strength-text"></div>
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock field-icon"></i>
+                    <input type="password" id="confirm_password" placeholder="Re-enter new password">
+                    <i class="fas fa-eye toggle-password" data-target="confirm_password"></i>
+                </div>
+                <div id="passwordError" class="error-message">Passwords do not match.</div>
+            </div>
+            <button type="submit" class="btn-submit">Update Profile</button>
+        </form>
+        <a href="{{ url_for('dashboard') }}" class="back-link">&larr; Back to Dashboard</a>
+    </div>
+
+    <script>
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const errorDiv = document.getElementById('passwordError');
+
+            if (password && password !== confirmPassword) {
+                e.preventDefault(); // Prevent form submission
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        });
+
+        // Clear error when user starts typing again
+        document.getElementById('confirm_password').addEventListener('input', function() {
+            document.getElementById('passwordError').style.display = 'none';
+        });
+
+        // Toggle Password Visibility
+        document.querySelectorAll('.toggle-password').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }
+            });
+        });
+
+        // Password Strength Meter
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.getElementById('strength-bar');
+        const strengthText = document.getElementById('strength-text');
+
+        passwordInput.addEventListener('input', function() {
+            const val = this.value;
+            let strength = 0;
+            if (val.length >= 6) strength++;
+            if (val.length >= 10) strength++;
+            if (/[A-Z]/.test(val)) strength++;
+            if (/[0-9]/.test(val)) strength++;
+            if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+            const colors = ['#ef4444', '#ef4444', '#f59e0b', '#f59e0b', '#10b981', '#10b981'];
+            const texts = ['', 'Very Weak', 'Weak', 'Medium', 'Strong', 'Very Strong'];
+
+            strengthBar.style.width = (strength * 20) + '%';
+            strengthBar.style.backgroundColor = colors[strength];
+            strengthText.textContent = val.length > 0 ? texts[strength] : '';
+            strengthText.style.color = colors[strength];
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Finance Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <style>
+      /* Independent Layout Styles for Admin Dashboard to avoid conflicts */
+      body {
+          background-color: #f3f4f6;
+          margin: 0;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      
+      .admin-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 40px 20px;
+      }
+
+      .header-flex { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          margin-bottom: 30px; 
+      }
+      
+      .header-flex h1 { margin: 0; color: #111827; font-size: 28px; }
+      .header-flex p { margin: 5px 0 0; color: #6b7280; }
+      
+      .back-btn { 
+          text-decoration: none; 
+          color: #4f46e5; 
+          font-weight: 600; 
+          padding: 8px 16px;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          transition: all 0.2s;
+      }
+      .back-btn:hover { background: #f9fafb; color: #4338ca; }
+
+      .admin-stats { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+      .stat-card { 
+          background: white; 
+          padding: 24px; 
+          border-radius: 12px; 
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+          flex: 1; 
+          min-width: 200px;
+          text-align: center; 
+      }
+      .stat-card h3 { margin: 0 0 10px; color: #6b7280; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+      .stat-card .value { font-size: 36px; font-weight: 700; color: #111827; margin: 0; }
+      
+      .table-container {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+      }
+      
+      .user-table { width: 100%; border-collapse: collapse; }
+      .user-table th, .user-table td { padding: 16px 24px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+      .user-table th { background: #f9fafb; font-weight: 600; color: #374151; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .user-table tr:last-child td { border-bottom: none; }
+      .user-table tr:hover { background-color: #f9fafb; }
+      
+      .badge { padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; display: inline-block; }
+      .badge.admin { background: #fee2e2; color: #991b1b; }
+      .badge.user { background: #d1fae5; color: #065f46; }
+      .badge.income { background: #d1fae5; color: #065f46; }
+      .badge.expense { background: #fee2e2; color: #991b1b; }
+      
+      .btn-delete { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.2s; }
+      .btn-delete:hover { background: #dc2626; }
+      
+      .btn-reset { background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 5px; }
+      .btn-reset:hover { background: #2563eb; }
+
+      .btn-role { background: #8b5cf6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-right: 5px; }
+      .btn-role:hover { background: #7c3aed; }
+
+      .search-form { margin-bottom: 20px; display: flex; gap: 10px; }
+      .search-input { padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; width: 300px; font-size: 14px; }
+
+      .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+      .alert-success { background-color: #d1fae5; color: #065f46; }
+      .alert-error { background-color: #fee2e2; color: #b91c1c; }
+
+      .action-buttons { display: flex; align-items: center; gap: 8px; }
+      .action-buttons form { margin: 0; }
+      .input-reset { width: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+      
+      <div class="header-flex">
+          <div>
+            <h1>🛡️ Admin Dashboard</h1>
+            <p>System Overview & User Management</p>
+          </div>
+          <a href="{{ url_for('dashboard') }}" class="back-btn">← Back to Dashboard</a>
+      </div>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div>
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="admin-stats">
+          <div class="stat-card">
+              <h3>Total Users</h3>
+              <p class="value">{{ user_count }}</p>
+          </div>
+          <div class="stat-card">
+              <h3>Total Transactions</h3>
+              <p class="value">{{ transaction_count }}</p>
+          </div>
+          <div class="stat-card">
+              <h3>Total Goals</h3>
+              <p class="value">{{ goal_count }}</p>
+          </div>
+          <div class="stat-card">
+              <h3>System Balance</h3>
+              <p class="value" style="font-size: 28px;">{{ currency }}{{ "{:,.0f}".format(system_balance) }}</p>
+          </div>
+      </div>
+
+      <h2 style="font-size: 20px; color: #374151; margin-bottom: 15px;">Recent System Activity</h2>
+      <section class="table-container" style="margin-bottom: 30px;">
+          <table class="user-table">
+              <thead>
+                  <tr>
+                      <th>User</th>
+                      <th>Type</th>
+                      <th>Category</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Flags</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for activity in recent_activity %}
+                  <tr>
+                      <td>{{ activity.user_email }}</td>
+                      <td>
+                          <span class="badge {{ activity.type }}">
+                              {{ activity.type|capitalize }}
+                          </span>
+                      </td>
+                      <td>{{ activity.category }}</td>
+                      <td style="font-weight: bold;">{{ currency }}{{ "{:,.2f}".format(activity.amount) }}</td>
+                      <td>{{ activity.date }}</td>
+                                            <td style="font-size:12px;">
+                                                    {% if activity.flagged %}
+                                                        <span class="badge expense">Flagged</span>
+                                                    {% else %}
+                                                        <span style="color:#6b7280;">—</span>
+                                                    {% endif %}
+                                            </td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="5" style="text-align:center; color:#6b7280;">No recent activity.</td></tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </section>
+
+      <h2 style="font-size: 20px; color: #374151; margin-bottom: 15px;">Recent Premium Payments</h2>
+      <section class="table-container" style="margin-bottom: 30px;">
+          <table class="user-table">
+              <thead>
+                  <tr>
+                      <th>User</th>
+                      <th>Payer Name</th>
+                      <th>Method</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for payment in recent_payments %}
+                  <tr>
+                      <td>{{ payment.user_email }}</td>
+                      <td>{{ payment.payer_name }}</td>
+                      <td><span class="badge income">{{ payment.payment_method|upper }}</span></td>
+                      <td style="font-weight: bold;">{{ currency }}{{ "{:,.2f}".format(payment.amount) }}</td>
+                      <td>{{ payment.date }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="5" style="text-align:center; color:#6b7280;">No premium payments found.</td></tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </section>
+
+      <h2 style="font-size: 20px; color: #374151; margin-bottom: 15px;">User Management</h2>
+      <form action="{{ url_for('admin_dashboard') }}" method="GET" class="search-form">
+          <input type="text" name="search" class="search-input" placeholder="Search users by email..." value="{{ search_query }}">
+          <button type="submit" class="back-btn" style="border:none; cursor:pointer;">Search</button>
+      </form>
+
+      <section class="table-container">
+          <table class="user-table">
+              <thead>
+                  <tr>
+                      <th>Email</th>
+                      <th>Tx Count</th>
+                      <th>Role</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for user in users %}
+                  <tr>
+                      <td>{{ user.email }}</td>
+                      <td>{{ user.tx_count }}</td>
+                      <td>
+                          <span class="badge {{ user.role or 'user' }}">{{ (user.role or 'user')|upper }}</span>
+                      </td>
+                                            <td class="action-buttons">
+                                                    <span style="color:#6b7280; font-size:13px; margin-right:8px;">{% if user.is_active %}Active{% else %}Suspended{% endif %}</span>
+                          
+                          {% if user.role != 'admin' %}
+                          <!-- Reset Password -->
+                          <form action="{{ url_for('admin_reset_password') }}" method="POST" style="display:flex; align-items:center;">
+                              <input type="hidden" name="email" value="{{ user.email }}">
+                              <input type="text" name="new_password" placeholder="New Pass" required class="input-reset">
+                              <button type="submit" class="btn-reset">Reset</button>
+                          </form>
+
+                          <!-- Delete User -->
+                          <form action="{{ url_for('delete_user') }}" method="POST" onsubmit="return confirm('Are you sure? This will delete the user and ALL their data.');">
+                              <input type="hidden" name="email" value="{{ user.email }}">
+                              <button type="submit" class="btn-delete">Delete User</button>
+                          </form>
+                          {% else %}
+                          <span style="color: #9ca3af; font-size: 13px; font-style: italic; margin-right: 10px;">Admin Account</span>
+                          {% if user.email != session['user'] %}
+                            <!-- Allow demoting other admins, but not self -->
+                            <form action="{{ url_for('admin_toggle_role') }}" method="POST">
+                                <input type="hidden" name="email" value="{{ user.email }}">
+                                <input type="hidden" name="current_role" value="admin">
+                                <button type="submit" class="btn-role" style="background:#6b7280;" title="Demote to User">Revoke Admin</button>
+                            </form>
+                            <!-- Allow deleting other admins -->
+                            <form action="{{ url_for('delete_user') }}" method="POST" onsubmit="return confirm('Are you sure? This will delete the ADMIN user and ALL their data.');">
+                                <input type="hidden" name="email" value="{{ user.email }}">
+                                <button type="submit" class="btn-delete">Delete Admin</button>
+                            </form>
+                          {% endif %}
+                          {% endif %}
+                      </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                      <td colspan="4" style="text-align: center; color: #6b7280;">No users found.</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </section>
+
+  </div>
+
+</body>
+</html>

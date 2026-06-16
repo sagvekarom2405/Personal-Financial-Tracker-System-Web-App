@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up - Finance Tracker</title>
+    <!-- Link to your local style.css file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-image: url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1951&q=80');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            color: #1f2937;
+        }
+        .logo {
+            text-align: center;
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: #111827;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .logo span {
+            color: #4f46e5;
+        }
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 15px;
+            color: #1f2937;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        input:focus {
+            border-color: #4f46e5;
+            background: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .password-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💰<span>Personal Finance Tracker</span></div>
+        <h2 style="text-align: center; color: #333; margin-bottom: 20px;">Sign Up</h2>
+
+        <!-- This div will display success or error messages -->
+        <div id="message" style="min-height: 24px;"></div>
+
+        <!-- Ensure your form and inputs have these `id` attributes -->
+        <form id="signup-form">
+            <input type="text" id="full_name" name="full_name" placeholder="Full Name" required>
+            <input type="tel" id="phone" name="phone" placeholder="Contact Number" required>
+            <input type="email" id="email" name="email" placeholder="Email" required>
+            <div class="password-container">
+                <input type="password" id="password" name="password" placeholder="Password" required style="width: 100%; box-sizing: border-box; padding-right: 40px; margin: 0;">
+                <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+            </div>
+            <button type="submit" class="btn">Sign Up</button>
+        </form>
+        <p class="text-link">Already have an account? <a href="/">Log In</a></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const signupForm = document.getElementById('signup-form');
+            const messageContainer = document.getElementById('message');
+
+            // Toggle Password Visibility
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            signupForm.addEventListener('submit', async (event) => {
+                // 1. Prevent the browser from reloading the page
+                event.preventDefault();
+
+                // 2. Get user input
+                const fullName = document.getElementById('full_name').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+
+                // --- VALIDATION START ---
+                messageContainer.textContent = ""; // Clear previous messages
+
+                if (fullName.length < 2) {
+                    messageContainer.textContent = "Full Name must be at least 2 characters.";
+                    messageContainer.style.color = "red";
+                    return;
+                }
+
+                // Validate Phone (Check for exactly 10 digits)
+                const phoneRegex = /^\d{10}$/;
+                if (!phoneRegex.test(phone)) {
+                    messageContainer.textContent = "Please enter a valid 10-digit phone number.";
+                    messageContainer.style.color = "red";
+                    return;
+                }
+
+                // Validate Password Length
+                if (password.length < 6) {
+                    messageContainer.textContent = "Password must be at least 6 characters long.";
+                    messageContainer.style.color = "red";
+                    return;
+                }
+                // --- VALIDATION END ---
+
+                // 3. Send data to the server as JSON
+                try {
+                    const response = await fetch('/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json', // This header is essential
+                        },
+                        body: JSON.stringify({ email, password, full_name: fullName, phone }),
+                    });
+
+                    const result = await response.json();
+                    messageContainer.textContent = result.message;
+
+                    if (result.success) {
+                        messageContainer.style.color = 'green';
+                        // On success, wait 2 seconds then redirect to the login page
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                    } else {
+                        messageContainer.style.color = 'red';
+                    }
+                } catch (error) {
+                    messageContainer.textContent = 'A network error occurred. Please try again.';
+                    messageContainer.style.color = 'red';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

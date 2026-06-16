@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Financial Goal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      background-image: url('https://images.unsplash.com/photo-1579621970795-87facc2f976d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .add-goal-section {
+      width: 90%;
+      max-width: 500px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .add-goal-section h2 {
+      font-size: 26px;
+      font-weight: 600;
+      margin-bottom: 30px;
+      color: #1e293b;
+      text-align: center;
+      border-left: none;
+      padding-left: 0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 15px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background-color: #f9fafb;
+      color: #1f2937;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #4f46e5;
+      background-color: #ffffff;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+
+    .form-buttons {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button[type="submit"] {
+      background: linear-gradient(to right, #4ade80, #22c55e);
+      color: white;
+    }
+
+    button[type="submit"]:hover {
+      background: linear-gradient(to right, #22c55e, #15803d);
+    }
+
+    button[type="button"] {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    button[type="button"]:hover {
+      background: #d1d5db;
+    }
+
+    .error-msg {
+      color: red;
+      font-size: 14px;
+      margin-top: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <section class="add-goal-section">
+    <h2>Create New Goal</h2>
+    <form id="goalForm" novalidate>
+      <div class="form-group">
+        <label for="title">Goal Title</label>
+        <input type="text" id="title" placeholder="e.g. Emergency Fund" required>
+        <div class="error-msg" id="titleError">Please enter a goal title.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="" disabled selected>-- Select a category --</option>
+          <option value="savings">Savings</option>
+          <option value="investment">Investment</option>
+          <option value="purchase">Purchase</option>
+        </select>
+        <div class="error-msg" id="categoryError">Please select a category.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="target_amount">Target Amount (₹)</label>
+        <input type="number" id="target_amount" placeholder="e.g. 10000" min="1" required>
+        <div class="error-msg" id="targetAmountError">Enter a valid target amount.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="current_amount">Current Amount (₹)</label>
+        <input type="number" id="current_amount" placeholder="e.g. 2000" min="0" required>
+        <div class="error-msg" id="currentAmountError">Enter a valid current amount.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="target_date">Target Date</label>
+        <input type="date" id="target_date" required>
+        <div class="error-msg" id="dateError">Select a valid future date.</div>
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit">Add Goal</button>
+        <button type="button" onclick="window.location.href='/dashboard'">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <script>
+    // Extra validation before submission
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("goalForm");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        // Validate
+        let hasError = false;
+        const title = document.getElementById("title");
+        const category = document.getElementById("category");
+        const targetAmount = document.getElementById("target_amount");
+        const currentAmount = document.getElementById("current_amount");
+        const targetDate = document.getElementById("target_date");
+
+        document.querySelectorAll(".error-msg").forEach(el => el.style.display = "none");
+
+        if (!title.value.trim()) {
+          document.getElementById("titleError").style.display = "block";
+          hasError = true;
+        }
+
+        if (!category.value) {
+          document.getElementById("categoryError").style.display = "block";
+          hasError = true;
+        }
+
+        if (!targetAmount.value || parseFloat(targetAmount.value) <= 0) {
+          document.getElementById("targetAmountError").style.display = "block";
+          hasError = true;
+        }
+
+        if (!currentAmount.value || parseFloat(currentAmount.value) < 0) {
+          document.getElementById("currentAmountError").style.display = "block";
+          hasError = true;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to midnight to allow today's date
+        if (!targetDate.value || new Date(targetDate.value) < today) {
+          document.getElementById("dateError").style.display = "block";
+          hasError = true;
+        }
+
+        if (hasError) return;
+
+        // Submit
+        const data = {
+          title: title.value,
+          category: category.value,
+          target_amount: parseFloat(targetAmount.value),
+          current_amount: parseFloat(currentAmount.value),
+          target_date: targetDate.value
+        };
+
+        fetch("/add-goal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Use the success message from the server
+              alert(data.message || "Goal added successfully!");
+              // Redirect to the dashboard and show the goals section
+              window.location.href = "/dashboard#financial-goals";
+            } else {
+              // Use the specific error message from the server
+              alert("Error: " + (data.message || "An unknown error occurred. Please check your input."));
+            }
+          });
+      });
+    });
+  </script>
+</body>
+</html>

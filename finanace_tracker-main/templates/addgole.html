@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add New Goal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='goals.css') }}">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Create New Goal</h2>
+    <form method="POST">
+      <input type="text" name="title" placeholder="Enter goal title" required>
+      <select name="category">
+        <option>Savings</option>
+        <option>Purchase</option>
+        <option>Investment</option>
+      </select>
+      <input type="number" step="0.01" name="target_amount" placeholder="Target Amount" required>
+      <input type="number" step="0.01" name="current_amount" placeholder="Current Amount" required>
+      <input type="date" name="target_date" required>
+      <div class="form-buttons">
+        <button type="submit">Add Goal</button>
+        <a href="{{ url_for('goals') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>
